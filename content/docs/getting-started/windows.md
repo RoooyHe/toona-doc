@@ -72,5 +72,5 @@ Ensure Visual Studio Build Tools are properly installed with C++ support.
 
 ## Next Steps
 
-- [Configuration]({{< relref "../configuration" >}})
-- [User Guide]({{< relref "/docs/user-guide" >}})
+- Configuration (Coming soon)
+- [User Guide](/docs/user-guide/)

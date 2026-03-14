@@ -9,10 +9,10 @@ Toona is a Matrix-based task collaboration platform that combines instant messag
 
 ## Quick Links
 
-- [Getting Started]({{< relref "/docs/getting-started" >}})
-- [User Guide]({{< relref "/docs/user-guide" >}})
-- [Developer Guide]({{< relref "/docs/developer-guide" >}})
-- [API Reference]({{< relref "/docs/api-reference" >}})
+- [Getting Started](/docs/getting-started/)
+- [User Guide](/docs/user-guide/)
+- [Developer Guide](/docs/developer-guide/)
+- [API Reference](/docs/api-reference/)
 
 ## Key Features
 

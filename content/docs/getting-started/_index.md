@@ -28,11 +28,11 @@ cargo run --release
 
 ### Platform-Specific Instructions
 
-- [Windows Installation]({{< relref "windows" >}})
-- [macOS Installation]({{< relref "macos" >}})
-- [Linux Installation]({{< relref "linux" >}})
-- [Android Installation]({{< relref "android" >}})
-- [iOS Installation]({{< relref "ios" >}})
+- [Windows Installation](windows/)
+- macOS Installation (Coming soon)
+- Linux Installation (Coming soon)
+- Android Installation (Coming soon)
+- iOS Installation (Coming soon)
 
 ## First Steps
 
@@ -45,5 +45,5 @@ After installation:
 
 ## Next Steps
 
-- [User Guide]({{< relref "/docs/user-guide" >}}) - Learn how to use Toona
-- [Configuration]({{< relref "configuration" >}}) - Customize your setup
+- [User Guide](/docs/user-guide/) - Learn how to use Toona
+- Configuration (Coming soon) - Customize your setup
