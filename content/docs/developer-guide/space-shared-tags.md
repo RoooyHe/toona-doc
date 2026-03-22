@@ -411,133 +411,122 @@ pub const PREDEFINED_TAG_COLORS: &[(&str, &str)] = &[
 
 ## 实现状态
 
-### Phase 1: 基础功能 (已完成)
+### 当前实现: 简化方案 (已完成)
+
+为了快速实现标签功能，采用了简化方案：**直接存储标签名称而不是标签 ID**。
+
+这种方案的优点：
+- 实现简单，无需维护 Space 标签库
+- 用户可以自由创建任意标签名称
+- 标签数据直接存储在 Card 中，无需额外的 Matrix Room State
+
+实现内容：
+
+1. **数据结构** (`src/kanban/state/kanban_state.rs`)
+   - `KanbanCard.tags`: 直接存储标签名称字符串列表
+   - `CardStatus` 枚举: 卡片状态（未完成、已完成、已归档）
+
+2. **UI 组件** (`src/kanban/components/tag_section.rs`)
+   - 标签显示: 直接显示 `card.tags` 中的标签名称
+   - 标签添加: 用户输入标签名称，直接保存到 Card
+   - 标签删除: 从 `card.tags` 中移除指定标签
+
+3. **Action 系统** (`src/kanban/state/kanban_actions.rs`)
+   - `AddTagToCard`: 添加标签名称到 Card
+   - `RemoveTag`: 从 Card 移除标签
+
+4. **应用状态处理** (`src/app.rs`)
+   - 处理 `AddTagToCard` 和 `RemoveTag` Actions
+   - 在内存中更新 Card 的标签
+   - 通过 `SaveCardMetadata` 请求保存到 Matrix
+
+5. **卡片状态管理** (`src/kanban/components/card_info_section.rs`)
+   - 状态按钮: 未完成、已完成、已归档
+   - 状态持久化: 通过 `SaveCardMetadata` 保存到 Matrix
+
+### Phase 1 完成的功能
 
 已在项目中实现以下内容:
 
 1. **数据结构** (`src/kanban/state/kanban_state.rs`)
-   - `SpaceTag` 结构体: 定义标签的 ID、名称、颜色、描述等
+   - `SpaceTag` 结构体: 定义标签的 ID、名称、颜色、描述等（预留用于未来扩展）
    - `PREDEFINED_TAG_COLORS` 常量: 预定义的 10 种标签颜色
-   - `KanbanAppState` 扩展: 添加 `space_tags` 字段存储 Space 标签库
+   - `KanbanAppState` 扩展: 添加 `space_tags` 字段存储 Space 标签库（预留用于未来扩展）
 
 2. **Matrix 适配器** (`src/kanban/matrix_adapter.rs`)
-   - `load_space_tags()`: 从 Space 的 Room State 加载标签库
-   - `save_space_tags()`: 保存标签库到 Space 的 Room State
-   - `add_space_tag()`: 添加新标签到 Space
-   - `update_space_tag()`: 更新 Space 中的标签
-   - `delete_space_tag()`: 删除 Space 中的标签
-   - `migrate_card_tags()`: 自动迁移旧格式标签(标签名称 -> 标签 ID)
+   - `load_space_tags()`: 从 Space 的 Room State 加载标签库（预留）
+   - `save_space_tags()`: 保存标签库到 Space 的 Room State（预留）
+   - `add_space_tag()`: 添加新标签到 Space（预留）
+   - `update_space_tag()`: 更新 Space 中的标签（预留）
+   - `delete_space_tag()`: 删除 Space 中的标签（预留）
+   - `migrate_card_tags()`: 自动迁移旧格式标签(标签名称 -> 标签 ID)（预留）
 
 3. **Action 系统** (`src/kanban/state/kanban_actions.rs`)
-   - `LoadSpaceTags`: 加载 Space 标签库
-   - `SpaceTagsLoaded`: 标签库加载完成
-   - `CreateSpaceTag`: 创建新标签
-   - `UpdateSpaceTag`: 更新标签
-   - `DeleteSpaceTag`: 删除标签
    - `AddTagToCard`: 添加标签到 Card
-   - `RemoveTagFromCard`: 从 Card 移除标签
+   - `RemoveTag`: 从 Card 移除标签
+   - 其他标签库相关 Actions（预留用于未来扩展）
 
-4. **Matrix 请求** (`src/sliding_sync.rs`)
-   - `LoadSpaceTags`: 异步加载标签库
-   - `CreateSpaceTag`: 异步创建标签
-   - `UpdateSpaceTag`: 异步更新标签
-   - `DeleteSpaceTag`: 异步删除标签
-
-5. **应用状态处理** (`src/app.rs`)
-   - 处理所有标签相关的 Actions
+4. **应用状态处理** (`src/app.rs`)
+   - 处理 `AddTagToCard` 和 `RemoveTag` Actions
    - 在内存中更新 Card 的标签
    - 自动保存到 Matrix
 
-6. **自动迁移**
-   - 加载 Space 时自动加载标签库
-   - 加载 Card 时自动检测并迁移旧格式标签
+### 未来扩展方向
 
-### Phase 2 & 3: 待实现
+当需要更复杂的标签管理功能时，可以升级到完整的 Space 标签库方案：
 
-- UI 组件: 标签选择器、标签管理界面、颜色选择器
-- 标签使用统计
-- 标签分组和搜索
-
-## 实现细节
-
-### 自动标签添加流程
-
-当用户在 Card 中创建新标签时，需要自动将该标签添加到 Card。实现流程如下:
-
-1. **用户输入标签名称** (`tag_section.rs` - `handle_event`)
-   - 用户点击"保存"按钮
-   - 保存待添加的标签名称到 `pending_tag_name`
-   - 保存 Space ID 到 `pending_space_id`
-   - 检查标签库中是否已存在同名标签
-   - 如果存在，直接调用 `AddTagToCard` Action
-   - 如果不存在，调用 `CreateSpaceTag` Action
-
-2. **创建标签** (`sliding_sync.rs` - `matrix_worker_task`)
-   - `CreateSpaceTag` 请求被处理
-   - 创建新的 `SpaceTag` 对象
-   - 通过 Matrix 适配器保存到 Space 的 Room State
-   - 重新加载 Space 标签库
-   - 发送 `SpaceTagsLoaded` Action
-
-3. **自动添加标签到 Card** (`tag_section.rs` - `draw_walk`)
-   - 在 `draw_walk` 中检查是否有待添加的标签
-   - 当 `SpaceTagsLoaded` 被处理后，标签库已更新
-   - 在新加载的标签库中查找待添加的标签
-   - 如果找到，自动调用 `AddTagToCard` Action
-   - 清除 `pending_tag_name` 和 `pending_space_id`
-
-4. **保存标签到 Card** (`app.rs` - `handle_kanban_action`)
-   - `AddTagToCard` Action 被处理
-   - 在内存中更新 Card 的 tags 字段
-   - 调用 `SaveCardMetadata` 请求保存到 Matrix
-
-### 关键实现点
-
-**TagSection 组件状态**:
-```rust
-pub struct TagSection {
-    view: View,
-    card_id: Option<OwnedRoomId>,
-    is_adding: bool,
-    pending_tag_name: Option<String>,      // 待添加的标签名称
-    pending_space_id: Option<OwnedRoomId>, // 待添加标签的 Space ID
-}
-```
-
-**自动添加逻辑** (`draw_walk` 方法):
-- 每次重绘时检查 `pending_tag_name` 和 `pending_space_id`
-- 如果存在待添加的标签，在当前 Space 的标签库中查找
-- 找到后自动触发 `AddTagToCard` Action
-- 清除待添加状态，防止重复添加
-
-**流程图**:
-```
-用户输入标签名称
-    |
-    v
-检查标签库中是否存在
-    |
-    +---> 存在 ---> 直接 AddTagToCard
-    |
-    +---> 不存在 ---> CreateSpaceTag
-                        |
-                        v
-                    Matrix 保存
-                        |
-                        v
-                    SpaceTagsLoaded
-                        |
-                        v
-                    draw_walk 检测
-                        |
-                        v
-                    自动 AddTagToCard
-                        |
-                        v
-                    SaveCardMetadata
-```
+1. **标签库管理**: 在 Space 级别维护统一的标签定义
+2. **标签颜色**: 为每个标签分配颜色
+3. **标签描述**: 为标签添加描述信息
+4. **标签权限**: 控制谁可以创建/修改/删除标签
+5. **标签统计**: 显示标签的使用情况
 
 ## 参考资料
 
 - Matrix Room State Events: https://spec.matrix.org/v1.11/client-server-api/#room-state
 - Trello Labels: https://trello.com/guide/labels
+
+
+## 已知问题修复
+
+### 标签显示为 ID 格式
+
+问题：标签被保存为 `tag_1774186137_688c8d24` 这样的 ID 格式，而不是用户输入的名称。
+
+原因：`matrix_adapter.rs` 中的 `migrate_card_tags` 方法会将标签名称转换为生成的 ID。
+
+修复方案：
+
+1. 移除标签迁移逻辑，直接使用标签名称
+
+```rust
+pub async fn migrate_card_tags(&self, _card: &mut KanbanCard, _space_id: &RoomId) -> Result<()> {
+    // 简化方案：直接使用标签名称，不需要迁移
+    Ok(())
+}
+```
+
+2. 在 UI 显示时自动过滤旧格式的标签 ID
+
+在 `tag_section.rs` 的 `draw_walk` 方法中添加过滤逻辑：
+
+```rust
+// 过滤掉旧格式的标签 ID（格式：tag_数字_哈希）
+card.tags.iter()
+    .filter(|tag| {
+        let is_old_format = tag.starts_with("tag_") && 
+            tag.matches('_').count() >= 2;
+        !is_old_format
+    })
+    .cloned()
+    .collect()
+```
+
+修复效果：
+- 新添加的标签直接使用用户输入的名称
+- 旧格式的标签 ID 会被自动隐藏，不显示在 UI 上
+- 用户可以重新添加正确格式的标签
+
+数据清理：
+- 旧格式标签仍存储在 Matrix 服务器中，但不影响使用
+- 如需彻底清理，可以在卡片详情页面重新添加标签（旧标签会被自动过滤）
